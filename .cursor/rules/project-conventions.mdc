@@ -1,0 +1,34 @@
+---
+description: Core project conventions for PokeNext
+alwaysApply: true
+---
+
+# PokeNext Project Conventions
+
+## Tech Stack
+
+- Next.js 16 with App Router and Server Components
+- TypeScript with strict mode
+- Tailwind CSS 4 for styling
+- shadcn/ui (New York style) with Radix UI primitives
+- PokéAPI v2 as data source
+
+## Code Style
+
+- All code, variables, comments, and messages in English
+- Use functional components with TypeScript types (avoid `any`)
+- Prefer Server Components; use `"use client"` only when necessary
+- Use `cn()` from `@/lib/utils` for conditional class merging
+- Keep components small and focused on a single responsibility
+
+## Project Structure
+
+- `app/` — Pages and layouts (App Router)
+- `components/ui/` — Reusable UI components (shadcn/ui)
+- `lib/` — Utility functions and API helpers
+
+## API Integration
+
+- Use native `fetch` with Next.js caching for PokéAPI calls
+- Handle loading states with Skeleton components
+- Always handle error states gracefully

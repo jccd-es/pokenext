@@ -1,0 +1,14 @@
+---
+description: React and Next.js component patterns
+globs: "**/*.tsx"
+alwaysApply: false
+---
+
+# Component Patterns
+
+- Use named exports for components, default exports only for pages
+- Define props with `type` instead of `interface` for component props
+- Colocate types with their components unless shared across files
+- Use `loading.tsx` and `error.tsx` for route-level states
+- Use Next.js `Image` component for optimized image rendering
+- Prefer `Link` from `next/link` for client-side navigation

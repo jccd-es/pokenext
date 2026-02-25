@@ -1,36 +1,144 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PokeNext
 
-## Getting Started
+A modern Pokémon explorer built with Next.js 16 and TypeScript, consuming the PokéAPI to display comprehensive Pokémon information with real-time filtering and search capabilities.
 
-First, run the development server:
+## 🎯 Project Objectives
+
+This project was developed as a technical assessment with the following requirements:
+
+1. **Pokémon Listing**: Display all Pokémon sorted by ID, showing name, generation, and types
+2. **Advanced Filtering**: Filter by type and generation using dropdown selectors
+3. **Real-time Search**: Search Pokémon by name with live results, including evolution chains
+4. **Detailed View**: Individual Pokémon pages displaying:
+   - Name and image
+   - Generation and types
+   - Evolution chain with images
+   - Base stats
+   - Navigation between evolutions while maintaining context
+
+## 🛠️ Tech Stack
+
+- **Framework**: [Next.js 16](https://nextjs.org/) with App Router
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **Styling**: [Tailwind CSS 4](https://tailwindcss.com/)
+- **UI Components**: [shadcn/ui](https://ui.shadcn.com/) with Radix UI primitives
+- **Icons**: [Lucide React](https://lucide.dev/)
+- **API**: [PokéAPI](https://pokeapi.co/)
+- **Package Manager**: npm
+
+## 📋 Features
+
+- ✅ Complete Pokémon listing with sorting by ID
+- ✅ Filter by type and generation
+- ✅ Real-time search with evolution chain support
+- ✅ Detailed Pokémon information pages
+- ✅ Evolution chain visualization with navigation
+- ✅ State persistence when navigating back to listing
+- ✅ Responsive design for all screen sizes
+- ✅ Dark mode support
+- ✅ Loading states with skeleton components
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js 18.x or higher
+- npm, yarn, pnpm, or bun
+
+### Installation
+
+1. Clone the repository:
+
+```bash
+git clone <repository-url>
+cd pokenext
+```
+
+2. Install dependencies:
+
+```bash
+npm install
+```
+
+3. Run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+4. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Build for Production
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+npm start
+```
 
-## Learn More
+## 📁 Project Structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+pokenext/
+├── app/                      # Next.js App Router
+│   ├── page.tsx             # Main listing page
+│   ├── pokemon/[id]/        # Dynamic Pokémon detail pages
+│   ├── layout.tsx           # Root layout with metadata
+│   └── globals.css          # Global styles
+├── components/
+│   └── ui/                  # Reusable UI components (shadcn/ui)
+├── lib/
+│   └── utils.ts             # Utility functions
+├── .cursor/rules/           # AI-assisted development rules
+└── public/                  # Static assets
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🔧 Development
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Available Scripts
 
-## Deploy on Vercel
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run start` - Start production server
+- `npm run lint` - Run ESLint
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🌐 API Integration
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The application integrates with [PokéAPI v2](https://pokeapi.co/docs/v2) to fetch:
+- Pokémon list and details
+- Evolution chains
+- Generation data
+- Type information
+- Base stats
+
+## 📝 Implementation Notes
+
+- **Server Components**: Leverages Next.js 16 Server Components for optimal performance
+- **Type Safety**: Full TypeScript implementation with strict type checking
+- **Component Library**: Uses shadcn/ui for consistent, accessible UI components
+- **Responsive Design**: Mobile-first approach with Tailwind CSS
+- **State Management**: URL-based state for filters to maintain navigation context
+
+## 🤖 AI-Assisted Development
+
+This project was developed with the assistance of AI tools to enhance productivity and code quality:
+
+- **[Cursor](https://cursor.com/)**: AI-powered IDE used as the primary development environment
+- **Cursor Rules**: Project-specific rules configured in `.cursor/rules/` to maintain consistent conventions, coding standards, and architectural decisions across AI-assisted development sessions
+
+## 🔜 Future Enhancements
+
+Potential improvements for future iterations:
+- Add pagination or infinite scroll for better performance
+- Implement caching strategies for API responses
+- Add ability comparisons and weaknesses
+- Include move sets and learnable moves
+- Add animations and transitions
+- Implement favorites/bookmarks feature
+
+## 👤 Author
+
+**Jose Carlos** — [GitHub](https://github.com/jccd-es)
+
+## 📄 License
+
+This project is for educational and assessment purposes.
