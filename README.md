@@ -132,6 +132,7 @@ The application includes an optional AI-powered semantic search feature that use
 - **Natural Language Queries**: Search using descriptive phrases like "fire type starters" or "dragon legendary"
 - **Semantic Understanding**: The AI interprets your intent beyond exact name matches
 - **Smart Filtering**: Automatically applies relevant filters based on your query
+- **Debounced Search**: AI search waits 500ms after the user stops typing before making the API call, preventing unnecessary requests while typing
 
 **To enable AI search:**
 

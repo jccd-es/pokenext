@@ -21,6 +21,7 @@ import { Bot } from "lucide-react";
 
 const ALL = "__all__";
 const SEARCH_DEBOUNCE_MS = 350;
+const AI_SEARCH_DEBOUNCE_MS = 500;
 
 type Props = {
   result: PaginatedPokemonResult;
@@ -48,6 +49,7 @@ export function PokemonExplorer({
 
   const [searchValue, setSearchValue] = useState(currentSearch ?? "");
   const debouncedSearch = useDebounce(searchValue, SEARCH_DEBOUNCE_MS);
+  const debouncedAiSearch = useDebounce(currentSearch ?? "", AI_SEARCH_DEBOUNCE_MS);
 
   const [aiResults, setAiResults] = useState<Pokemon[]>([]);
   const [isAiSearching, setIsAiSearching] = useState(false);
@@ -97,8 +99,8 @@ export function PokemonExplorer({
   useEffect(() => {
     const shouldSearchAi =
       result.pokemons.length === 0 &&
-      currentSearch &&
-      currentSearch.length >= 2 &&
+      debouncedAiSearch &&
+      debouncedAiSearch.length >= 2 &&
       !currentType &&
       !currentGeneration;
 
@@ -108,7 +110,7 @@ export function PokemonExplorer({
       return;
     }
 
-    if (aiSearchQuery === currentSearch) return;
+    if (aiSearchQuery === debouncedAiSearch) return;
 
     const controller = new AbortController();
 
@@ -121,7 +123,7 @@ export function PokemonExplorer({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            query: currentSearch,
+            query: debouncedAiSearch,
             language: currentLanguage ?? "en",
           }),
           signal: controller.signal,
@@ -145,7 +147,7 @@ export function PokemonExplorer({
           .sort((a, b) => a.id - b.id);
 
         setAiResults(sorted);
-        setAiSearchQuery(currentSearch ?? null);
+        setAiSearchQuery(debouncedAiSearch ?? null);
       } catch (error) {
         if ((error as Error).name !== "AbortError") {
           console.error("AI search failed:", error);
@@ -159,7 +161,7 @@ export function PokemonExplorer({
     fetchAiResults();
 
     return () => controller.abort();
-  }, [result.pokemons.length, currentSearch, currentType, currentGeneration, currentLanguage, aiSearchQuery]);
+  }, [result.pokemons.length, debouncedAiSearch, currentType, currentGeneration, currentLanguage, aiSearchQuery]);
 
   const selectSkeleton = (className: string) => (
     <div
