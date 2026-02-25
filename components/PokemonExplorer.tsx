@@ -73,7 +73,8 @@ export function PokemonExplorer({
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
-    setMounted(true);
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -159,7 +160,11 @@ export function PokemonExplorer({
         className={`space-y-2 transition-opacity ${isPending ? "opacity-50" : ""}`}
       >
         {result.pokemons.map((pokemon) => (
-          <PokemonListItem key={pokemon.id} pokemon={pokemon} />
+          <PokemonListItem
+            key={pokemon.id}
+            pokemon={pokemon}
+            searchParams={searchParams}
+          />
         ))}
         {result.pokemons.length === 0 && (
           <p className="text-center text-muted-foreground py-12">

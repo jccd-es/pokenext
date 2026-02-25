@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { PokemonExplorer } from "@/components/PokemonExplorer";
 import {
   getPokemonList,
@@ -30,8 +31,17 @@ export default async function PokemonListPage({ searchParams }: PageProps) {
   ]);
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Pokémon</h1>
+    <div className="container mx-auto px-4 py-8 max-w-5xl">
+      <h1 className="text-2xl font-bold mb-6 flex items-center gap-3">
+        <Image
+          src="/pokeball.svg"
+          alt="Pokeball"
+          width={32}
+          height={32}
+          className="w-8 h-8"
+        />
+        PokeNext
+      </h1>
       <PokemonExplorer
         result={result}
         types={types}
