@@ -15,17 +15,20 @@ import { PokemonPagination } from "@/components/PokemonPagination";
 import { cn } from "@/lib/utils";
 import { PaginatedPokemonResult } from "@/types/pokemon";
 import { useDebounce } from "@/hooks/use-debounce";
+import { useTranslations } from "@/lib/i18n/use-translations";
+import { LANGUAGES } from "@/lib/i18n/translations";
 
 const ALL = "__all__";
 const SEARCH_DEBOUNCE_MS = 350;
 
 type Props = {
   result: PaginatedPokemonResult;
-  types: string[];
+  types: { slug: string; name: string }[];
   generations: { slug: string; name: string }[];
   currentSearch?: string;
   currentType?: string;
   currentGeneration?: string;
+  currentLanguage?: string;
 };
 
 export function PokemonExplorer({
@@ -35,10 +38,12 @@ export function PokemonExplorer({
   currentSearch,
   currentType,
   currentGeneration,
+  currentLanguage,
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
+  const t = useTranslations(currentLanguage);
 
   const [searchValue, setSearchValue] = useState(currentSearch ?? "");
   const debouncedSearch = useDebounce(searchValue, SEARCH_DEBOUNCE_MS);
@@ -84,9 +89,7 @@ export function PokemonExplorer({
     }
   }, [debouncedSearch, navigate, searchParams]);
 
-  const selectSkeleton = (
-    className: string
-  ) => (
+  const selectSkeleton = (className: string) => (
     <div
       className={cn("rounded-md border bg-transparent animate-pulse", className)}
       style={{ height: 36 }}
@@ -99,7 +102,7 @@ export function PokemonExplorer({
       <div className="mb-6 flex flex-col sm:flex-row gap-3">
         <Input
           type="search"
-          placeholder="Search Pokémon..."
+          placeholder={t.search.placeholder}
           value={searchValue}
           onChange={(e) => setSearchValue(e.target.value)}
           className="max-w-md"
@@ -110,13 +113,13 @@ export function PokemonExplorer({
             onValueChange={(v) => navigate({ type: v })}
           >
             <SelectTrigger className="w-full sm:w-40">
-              <SelectValue placeholder="Type" />
+              <SelectValue placeholder={t.filters.type} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALL}>All types</SelectItem>
-              {types.map((t) => (
-                <SelectItem key={t} value={t} className="capitalize">
-                  {t}
+              <SelectItem value={ALL}>{t.filters.allTypes}</SelectItem>
+              {types.map((type) => (
+                <SelectItem key={type.slug} value={type.slug} className="capitalize">
+                  {type.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -130,10 +133,10 @@ export function PokemonExplorer({
             onValueChange={(v) => navigate({ generation: v })}
           >
             <SelectTrigger className="w-full sm:w-52">
-              <SelectValue placeholder="Generation" />
+              <SelectValue placeholder={t.filters.generation} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALL}>All generations</SelectItem>
+              <SelectItem value={ALL}>{t.filters.allGenerations}</SelectItem>
               {generations.map((g) => (
                 <SelectItem key={g.slug} value={g.slug}>
                   {g.name}
@@ -144,14 +147,33 @@ export function PokemonExplorer({
         ) : (
           selectSkeleton("w-full sm:w-52")
         )}
+        {mounted ? (
+          <Select
+            value={currentLanguage ?? "en"}
+            onValueChange={(v) => navigate({ language: v })}
+          >
+            <SelectTrigger className="w-full sm:w-32">
+              <SelectValue placeholder={t.filters.language} />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.values(LANGUAGES).map((lang) => (
+                <SelectItem key={lang.code} value={lang.code}>
+                  {lang.nativeName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          selectSkeleton("w-full sm:w-32")
+        )}
       </div>
 
       <p className="text-sm text-muted-foreground mb-4">
-        {result.total} Pokémon found
+        {result.total} {t.search.results}
         {result.totalPages > 1 && (
           <span>
             {" "}
-            — Page {result.page} of {result.totalPages}
+            — {t.search.page} {result.page} {t.search.of} {result.totalPages}
           </span>
         )}
       </p>
@@ -168,7 +190,7 @@ export function PokemonExplorer({
         ))}
         {result.pokemons.length === 0 && (
           <p className="text-center text-muted-foreground py-12">
-            No Pokémon match your filters.
+            {t.search.noResults}
           </p>
         )}
       </div>

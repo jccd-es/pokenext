@@ -1,0 +1,121 @@
+export type Language = "en" | "es";
+
+export const LANGUAGES = {
+  en: { code: "en", name: "English", nativeName: "English" },
+  es: { code: "es", name: "Spanish", nativeName: "Español" },
+} as const;
+
+export const translations = {
+  en: {
+    app: {
+      title: "PokeNext",
+    },
+    search: {
+      placeholder: "Search Pokémon...",
+      results: "Pokémon found",
+      noResults: "No Pokémon match your filters.",
+      page: "Page",
+      of: "of",
+    },
+    filters: {
+      allTypes: "All types",
+      allGenerations: "All generations",
+      type: "Type",
+      generation: "Generation",
+      language: "Language",
+    },
+    pokemon: {
+      backToList: "Back to list",
+      legendary: "Legendary",
+      mythical: "Mythical",
+      pokedexEntry: "Pokédex Entry",
+      details: "Details",
+      generation: "Generation",
+      height: "Height",
+      weight: "Weight",
+      baseXP: "Base XP",
+      habitat: "Habitat",
+      growthRate: "Growth Rate",
+      captureRate: "Capture Rate",
+      gender: "Gender",
+      genderless: "Genderless",
+      eggGroups: "Egg Groups",
+      baseHappiness: "Base Happiness",
+      abilities: "Abilities",
+      hidden: "Hidden",
+      baseStats: "Base Stats",
+      total: "Total",
+      evolutionChain: "Evolution Chain",
+      moves: "Moves",
+      evolution: "'s evolution",
+      playCry: "Play cry",
+      level: "Lv.",
+    },
+    stats: {
+      hp: "HP",
+      attack: "Attack",
+      defense: "Defense",
+      specialAttack: "Sp. Atk",
+      specialDefense: "Sp. Def",
+      speed: "Speed",
+    },
+  },
+  es: {
+    app: {
+      title: "PokeNext",
+    },
+    search: {
+      placeholder: "Buscar Pokémon...",
+      results: "Pokémon encontrados",
+      noResults: "No hay Pokémon que coincidan con tus filtros.",
+      page: "Página",
+      of: "de",
+    },
+    filters: {
+      allTypes: "Todos los tipos",
+      allGenerations: "Todas las generaciones",
+      type: "Tipo",
+      generation: "Generación",
+      language: "Idioma",
+    },
+    pokemon: {
+      backToList: "Volver al listado",
+      legendary: "Legendario",
+      mythical: "Mítico",
+      pokedexEntry: "Entrada Pokédex",
+      details: "Detalles",
+      generation: "Generación",
+      height: "Altura",
+      weight: "Peso",
+      baseXP: "XP Base",
+      habitat: "Hábitat",
+      growthRate: "Ritmo de Crecimiento",
+      captureRate: "Tasa de Captura",
+      gender: "Género",
+      genderless: "Sin género",
+      eggGroups: "Grupos Huevo",
+      baseHappiness: "Felicidad Base",
+      abilities: "Habilidades",
+      hidden: "Oculta",
+      baseStats: "Estadísticas Base",
+      total: "Total",
+      evolutionChain: "Cadena Evolutiva",
+      moves: "Movimientos",
+      evolution: " evolucionado",
+      playCry: "Reproducir grito",
+      level: "Nv.",
+    },
+    stats: {
+      hp: "PS",
+      attack: "Ataque",
+      defense: "Defensa",
+      specialAttack: "At. Esp.",
+      specialDefense: "Def. Esp.",
+      speed: "Velocidad",
+    },
+  },
+} as const;
+
+type DeepWriteable<T> = { -readonly [P in keyof T]: DeepWriteable<T[P]> };
+
+export type Translations = DeepWriteable<typeof translations.en>;

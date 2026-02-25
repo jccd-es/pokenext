@@ -28,15 +28,6 @@ export const STAT_COLORS: Record<string, string> = {
   speed: "bg-pink-500",
 };
 
-export const STAT_LABELS: Record<string, string> = {
-  hp: "HP",
-  attack: "Attack",
-  defense: "Defense",
-  "special-attack": "Sp. Atk",
-  "special-defense": "Sp. Def",
-  speed: "Speed",
-};
-
 export function capitalize(str: string) {
   return str
     .split("-")
@@ -54,8 +45,8 @@ export function formatWeight(hg: number): string {
   return `${kg.toFixed(1)} kg`;
 }
 
-export function genderRatio(rate: number): string {
-  if (rate === -1) return "Genderless";
+export function genderRatio(rate: number, genderlessText = "Genderless"): string {
+  if (rate === -1) return genderlessText;
   const female = (rate / 8) * 100;
   const male = 100 - female;
   return `${male.toFixed(0)}% ♂ / ${female.toFixed(0)}% ♀`;

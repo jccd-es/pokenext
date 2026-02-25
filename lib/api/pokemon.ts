@@ -15,7 +15,8 @@ const POKEMON_LIST_QUERY = `
   query getPokemonList(
     $limit: Int!,
     $offset: Int!,
-    $where: pokemon_bool_exp
+    $where: pokemon_bool_exp,
+    $language: String!
   ) {
     pokemon(
       limit: $limit,
@@ -29,17 +30,20 @@ const POKEMON_LIST_QUERY = `
       weight
       pokemontypes(order_by: {slot: asc}) {
         slot
-        type { name }
+        type {
+          name
+          typenames(where: {language: {name: {_eq: $language}}}) { name }
+        }
       }
       pokemonspecy {
         is_legendary
         is_mythical
         evolves_from_species_id
-        pokemonspeciesflavortexts(where: {language: {name: {_eq: "en"}}}, limit: 1) {
+        pokemonspeciesflavortexts(where: {language: {name: {_eq: $language}}}, limit: 1) {
           flavor_text
         }
         generation {
-          generationnames(where: {language: {name: {_eq: "en"}}}) {
+          generationnames(where: {language: {name: {_eq: $language}}}) {
             name
           }
         }
@@ -60,18 +64,19 @@ const POKEMON_LIST_QUERY = `
 `;
 
 const TYPES_QUERY = `
-  query getTypes {
+  query getTypes($language: String!) {
     type(order_by: {name: asc}, where: {pokemontypes_aggregate: {count: {predicate: {_gt: 0}}}}) {
       name
+      typenames(where: {language: {name: {_eq: $language}}}) { name }
     }
   }
 `;
 
 const GENERATIONS_QUERY = `
-  query getGenerations {
+  query getGenerations($language: String!) {
     generation(order_by: {id: asc}) {
       name
-      generationnames(where: {language: {name: {_eq: "en"}}}) {
+      generationnames(where: {language: {name: {_eq: $language}}}) {
         name
       }
     }
@@ -85,7 +90,10 @@ type GqlPokemon = {
   name: string;
   height: number;
   weight: number;
-  pokemontypes: { slot: number; type: { name: string } }[];
+  pokemontypes: {
+    slot: number;
+    type: { name: string; typenames: { name: string }[] };
+  }[];
   pokemonspecy: {
     is_legendary: boolean;
     is_mythical: boolean;
@@ -108,7 +116,7 @@ type GqlPokemonResponse = {
 };
 
 type GqlTypesResponse = {
-  data: { type: { name: string }[] };
+  data: { type: { name: string; typenames: { name: string }[] }[] };
 };
 
 type GqlGenerationsResponse = {
@@ -139,7 +147,13 @@ function mapToPokemon(gql: GqlPokemon): Pokemon {
   return {
     id: gql.id,
     name: gql.name,
-    types: gql.pokemontypes,
+    types: gql.pokemontypes.map((t) => ({
+      slot: t.slot,
+      type: {
+        name: t.type.name,
+        localizedName: t.type.typenames[0]?.name,
+      },
+    })),
     generation:
       species.generation.generationnames[0]?.name ?? "Unknown",
     evolutionChainIds: chainIds,
@@ -216,10 +230,11 @@ export async function getPokemonList(
 ): Promise<PaginatedPokemonResult> {
   const offset = (filters.page - 1) * PAGE_SIZE;
   const where = buildWhereClause(filters);
+  const language = filters.language ?? "en";
 
   const { data } = await gqlFetch<GqlPokemonResponse>(
     POKEMON_LIST_QUERY,
-    { limit: PAGE_SIZE, offset, where },
+    { limit: PAGE_SIZE, offset, where, language },
     3600
   );
 
@@ -234,17 +249,31 @@ export async function getPokemonList(
   };
 }
 
-export async function getTypes(): Promise<string[]> {
-  const { data } = await gqlFetch<GqlTypesResponse>(TYPES_QUERY, {}, false);
-  return data.type.map((t) => t.name);
+export type PokemonTypeOption = {
+  slug: string;
+  name: string;
+};
+
+export async function getTypes(
+  language = "en"
+): Promise<PokemonTypeOption[]> {
+  const { data } = await gqlFetch<GqlTypesResponse>(
+    TYPES_QUERY,
+    { language },
+    false
+  );
+  return data.type.map((t) => ({
+    slug: t.name,
+    name: t.typenames[0]?.name ?? t.name,
+  }));
 }
 
-export async function getGenerations(): Promise<
-  { slug: string; name: string }[]
-> {
+export async function getGenerations(
+  language = "en"
+): Promise<{ slug: string; name: string }[]> {
   const { data } = await gqlFetch<GqlGenerationsResponse>(
     GENERATIONS_QUERY,
-    {},
+    { language },
     false
   );
   return data.generation.map((g) => ({
@@ -264,174 +293,229 @@ export async function getPokemon(id: number | string): Promise<Pokemon> {
   return mapToPokemon(data.pokemon[0]);
 }
 
-// --- REST API v2 for Pokemon Detail ---
+// --- GraphQL Query for Pokemon Detail (optimized single request) ---
 
-const REST_BASE = "https://pokeapi.co/api/v2";
-
-async function restFetch<T>(url: string): Promise<T> {
-  const res = await fetch(url, { next: { revalidate: 86400 } });
-  if (!res.ok) throw new Error(`REST request failed: ${res.status} ${url}`);
-  return res.json();
-}
-
-function spriteUrl(id: number) {
-  return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
-}
-
-type EvolutionDetail = {
-  min_level?: number | null;
-  trigger?: { name: string } | null;
-  item?: { name: string } | null;
-  held_item?: { name: string } | null;
-};
-
-type EvolutionChainNode = {
-  species: { name: string; url: string };
-  evolution_details?: EvolutionDetail[];
-  evolves_to: EvolutionChainNode[];
-};
-
-function flattenEvolutionChain(chain: EvolutionChainNode): EvolutionNode[] {
-  const nodes: EvolutionNode[] = [];
-
-  function walk(node: EvolutionChainNode) {
-    const speciesUrl: string = node.species.url;
-    const id = Number(speciesUrl.split("/").filter(Boolean).pop());
-    const detail = node.evolution_details?.[0];
-
-    nodes.push({
-      id,
-      name: node.species.name,
-      sprite: spriteUrl(id),
-      minLevel: detail?.min_level ?? null,
-      trigger: detail?.trigger?.name ?? null,
-      item: detail?.item?.name ?? detail?.held_item?.name ?? null,
-    });
-
-    for (const child of node.evolves_to) {
-      walk(child);
+const POKEMON_DETAIL_QUERY = `
+  query getPokemonDetail($id: Int!, $lang: String!) {
+    pokemon(where: {id: {_eq: $id}}) {
+      id
+      name
+      height
+      weight
+      base_experience
+      pokemoncries { cries }
+      pokemonsprites { sprites }
+      pokemontypes(order_by: {slot: asc}) {
+        slot
+        type {
+          name
+          typenames(where: {language: {name: {_eq: $lang}}}) { name }
+        }
+      }
+      pokemonabilities(order_by: {slot: asc}) {
+        slot
+        is_hidden
+        ability {
+          name
+          abilitynames(where: {language: {name: {_eq: $lang}}}) { name }
+        }
+      }
+      pokemonstats {
+        base_stat
+        stat { name }
+      }
+      pokemonmoves(distinct_on: move_id) {
+        move {
+          name
+          movenames(where: {language: {name: {_eq: $lang}}}) { name }
+        }
+      }
+      pokemonspecy {
+        base_happiness
+        capture_rate
+        gender_rate
+        is_legendary
+        is_mythical
+        pokemonspeciesnames(where: {language: {name: {_eq: $lang}}}) {
+          name
+          genus
+        }
+        pokemonspeciesflavortexts(where: {language: {name: {_eq: $lang}}}, limit: 1) {
+          flavor_text
+        }
+        generation { name }
+        growthrate { name }
+        pokemonhabitat { name }
+        pokemonegggroups {
+          egggroup { name }
+        }
+        evolutionchain {
+          pokemonspecies(order_by: {id: asc}) {
+            id
+            name
+            pokemonspeciesnames(where: {language: {name: {_eq: $lang}}}) { name }
+            pokemonevolutions {
+              min_level
+              evolutiontrigger { name }
+              item { name }
+              ItemByHeldItemId { name }
+            }
+          }
+        }
+      }
     }
   }
+`;
 
-  walk(chain);
-  return nodes;
-}
-
-type RestPokemonData = {
+type GqlDetailPokemon = {
   id: number;
   name: string;
   height: number;
   weight: number;
   base_experience: number;
-  types: { slot: number; type: { name: string } }[];
-  stats: { base_stat: number; stat: { name: string } }[];
-  abilities: { ability: { name: string }; is_hidden: boolean; slot: number }[];
-  moves: { move: { name: string } }[];
-  cries?: { latest?: string; legacy?: string };
-  sprites: {
-    front_default: string;
-    front_shiny: string;
-    other?: {
-      "official-artwork"?: {
-        front_default?: string;
-        front_shiny?: string;
-      };
+  pokemoncries: { cries: { latest?: string; legacy?: string } }[];
+  pokemonsprites: { sprites: Record<string, unknown> }[];
+  pokemontypes: {
+    slot: number;
+    type: { name: string; typenames: { name: string }[] };
+  }[];
+  pokemonabilities: {
+    slot: number;
+    is_hidden: boolean;
+    ability: { name: string; abilitynames: { name: string }[] };
+  }[];
+  pokemonstats: { base_stat: number; stat: { name: string } }[];
+  pokemonmoves: {
+    move: { name: string; movenames: { name: string }[] };
+  }[];
+  pokemonspecy: {
+    base_happiness: number | null;
+    capture_rate: number;
+    gender_rate: number;
+    is_legendary: boolean;
+    is_mythical: boolean;
+    pokemonspeciesnames: { name: string; genus: string }[];
+    pokemonspeciesflavortexts: { flavor_text: string }[];
+    generation: { name: string };
+    growthrate: { name: string };
+    pokemonhabitat: { name: string } | null;
+    pokemonegggroups: { egggroup: { name: string } }[];
+    evolutionchain: {
+      pokemonspecies: {
+        id: number;
+        name: string;
+        pokemonspeciesnames: { name: string }[];
+        pokemonevolutions: {
+          min_level: number | null;
+          evolutiontrigger: { name: string } | null;
+          item: { name: string } | null;
+          ItemByHeldItemId: { name: string } | null;
+        }[];
+      }[];
     };
   };
-  species: { url: string };
 };
 
-type RestSpeciesData = {
-  genera: { genus: string; language: { name: string } }[];
-  flavor_text_entries: { flavor_text: string; language: { name: string } }[];
-  generation: { name: string };
-  habitat?: { name: string } | null;
-  growth_rate: { name: string };
-  capture_rate: number;
-  base_happiness: number;
-  gender_rate: number;
-  egg_groups: { name: string }[];
-  is_legendary: boolean;
-  is_mythical: boolean;
-  evolution_chain: { url: string };
+type GqlDetailResponse = {
+  data: { pokemon: GqlDetailPokemon[] };
 };
 
-type RestEvolutionData = {
-  chain: EvolutionChainNode;
-};
+function spriteUrl(id: number) {
+  return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
+}
 
 export async function getPokemonDetailed(
-  id: number | string
+  id: number | string,
+  language = "en"
 ): Promise<PokemonDetailed> {
-  const pokemonData = await restFetch<RestPokemonData>(`${REST_BASE}/pokemon/${id}`);
-  
-  const speciesUrl: string = pokemonData.species.url;
-  const speciesId = speciesUrl.split("/").filter(Boolean).pop();
-  
-  const speciesData = await restFetch<RestSpeciesData>(`${REST_BASE}/pokemon-species/${speciesId}`);
-
-  const evolutionChainUrl: string = speciesData.evolution_chain.url;
-  const evoData = await restFetch<RestEvolutionData>(evolutionChainUrl);
-  const evolutionChain = flattenEvolutionChain(evoData.chain);
-
-  const englishGenus =
-    speciesData.genera.find((g) => g.language.name === "en")?.genus ?? "";
-
-  const flavorEntry = speciesData.flavor_text_entries.find(
-    (e) => e.language.name === "en"
+  const numericId = Number(id);
+  const { data } = await gqlFetch<GqlDetailResponse>(
+    POKEMON_DETAIL_QUERY,
+    { id: numericId, lang: language },
+    3600
   );
-  const flavorText = flavorEntry?.flavor_text.replace(/[\f\n\r]/g, " ") ?? "";
 
-  const generationName =
-    speciesData.generation.name.replace("generation-", "").toUpperCase();
+  const poke = data.pokemon[0];
+  if (!poke) throw new Error(`Pokemon ${id} not found`);
+
+  const species = poke.pokemonspecy;
+  const speciesName = species.pokemonspeciesnames[0];
+  const sprites = poke.pokemonsprites[0]?.sprites as {
+    front_default?: string;
+    front_shiny?: string;
+    other?: { "official-artwork"?: { front_default?: string; front_shiny?: string } };
+  } | undefined;
+  const cries = poke.pokemoncries[0]?.cries;
+
+  const generationName = species.generation.name.replace("generation-", "").toUpperCase();
+  const flavorText = species.pokemonspeciesflavortexts[0]?.flavor_text?.replace(/[\f\n\r]/g, " ") ?? "";
+
+  const evolutionChain: EvolutionNode[] = species.evolutionchain.pokemonspecies.map((sp) => {
+    const evo = sp.pokemonevolutions[0];
+    return {
+      id: sp.id,
+      name: sp.name,
+      localizedName: sp.pokemonspeciesnames[0]?.name,
+      sprite: spriteUrl(sp.id),
+      minLevel: evo?.min_level ?? null,
+      trigger: evo?.evolutiontrigger?.name ?? null,
+      item: evo?.item?.name ?? evo?.ItemByHeldItemId?.name ?? null,
+    };
+  });
 
   return {
-    id: pokemonData.id,
-    name: pokemonData.name,
-    height: pokemonData.height,
-    weight: pokemonData.weight,
-    baseExperience: pokemonData.base_experience,
-    types: pokemonData.types.map((t) => ({
+    id: poke.id,
+    name: poke.name,
+    height: poke.height,
+    weight: poke.weight,
+    baseExperience: poke.base_experience,
+    types: poke.pokemontypes.map((t) => ({
       slot: t.slot,
-      type: { name: t.type.name },
+      type: {
+        name: t.type.name,
+        localizedName: t.type.typenames[0]?.name,
+      },
     })),
-    stats: pokemonData.stats.map((s) => ({
+    stats: poke.pokemonstats.map((s) => ({
       base_stat: s.base_stat,
       stat: { name: s.stat.name },
     })),
-    abilities: pokemonData.abilities.map((a) => ({
-      ability: { name: a.ability.name },
+    abilities: poke.pokemonabilities.map((a) => ({
+      ability: {
+        name: a.ability.name,
+        localizedName: a.ability.abilitynames[0]?.name,
+      },
       is_hidden: a.is_hidden,
       slot: a.slot,
     })),
-    moves: pokemonData.moves.map((m) => ({
-      move: { name: m.move.name },
+    moves: poke.pokemonmoves.map((m) => ({
+      move: {
+        name: m.move.name,
+        localizedName: m.move.movenames[0]?.name,
+      },
     })),
     cries: {
-      latest: pokemonData.cries?.latest ?? null,
-      legacy: pokemonData.cries?.legacy ?? null,
+      latest: cries?.latest ?? null,
+      legacy: cries?.legacy ?? null,
     },
     sprites: {
-      front_default: pokemonData.sprites.front_default,
-      front_shiny: pokemonData.sprites.front_shiny,
-      officialArtwork:
-        pokemonData.sprites.other?.["official-artwork"]?.front_default ??
-        spriteUrl(pokemonData.id),
-      officialArtworkShiny:
-        pokemonData.sprites.other?.["official-artwork"]?.front_shiny ?? null,
+      front_default: sprites?.front_default ?? spriteUrl(poke.id),
+      front_shiny: sprites?.front_shiny ?? null,
+      officialArtwork: sprites?.other?.["official-artwork"]?.front_default ?? spriteUrl(poke.id),
+      officialArtworkShiny: sprites?.other?.["official-artwork"]?.front_shiny ?? null,
     },
     species: {
-      genera: englishGenus,
+      genera: speciesName?.genus ?? "",
       flavorText,
       generation: `Generation ${generationName}`,
-      habitat: speciesData.habitat?.name ?? null,
-      growthRate: speciesData.growth_rate.name,
-      captureRate: speciesData.capture_rate,
-      baseHappiness: speciesData.base_happiness,
-      genderRate: speciesData.gender_rate,
-      eggGroups: speciesData.egg_groups.map((g) => g.name),
-      isLegendary: speciesData.is_legendary,
-      isMythical: speciesData.is_mythical,
+      habitat: species.pokemonhabitat?.name ?? null,
+      growthRate: species.growthrate.name,
+      captureRate: species.capture_rate,
+      baseHappiness: species.base_happiness,
+      genderRate: species.gender_rate,
+      eggGroups: species.pokemonegggroups.map((g) => g.egggroup.name),
+      isLegendary: species.is_legendary,
+      isMythical: species.is_mythical,
     },
     evolutionChain,
   };

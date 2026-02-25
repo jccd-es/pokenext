@@ -12,6 +12,7 @@ import {
   formatWeight,
   TYPE_COLORS,
 } from "@/lib/pokemon-utils";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 type Props = {
   pokemon: Pokemon;
@@ -21,10 +22,15 @@ type Props = {
 export function PokemonListItem({ pokemon, searchParams }: Props) {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const language = searchParams?.get("language") ?? undefined;
+  const t = useTranslations(language);
   const query = searchParams?.toString();
-  const href = query
-    ? `/pokemon/${pokemon.id}?from=${encodeURIComponent(query)}`
-    : `/pokemon/${pokemon.id}`;
+  
+  let href = `/pokemon/${pokemon.id}`;
+  const params = new URLSearchParams();
+  if (query) params.set("from", query);
+  if (language) params.set("language", language);
+  if (params.toString()) href += `?${params.toString()}`;
 
   return (
     <Card className="hover:shadow-md transition-shadow py-0" role="listitem">
@@ -77,17 +83,18 @@ export function PokemonListItem({ pokemon, searchParams }: Props) {
               </h3>
               {pokemon.evolvesFromName && (
                 <span className="text-xs text-muted-foreground italic">
-                  {capitalize(pokemon.evolvesFromName)}&apos;s evolution
+                  {capitalize(pokemon.evolvesFromName)}
+                  {t.pokemon.evolution}
                 </span>
               )}
               {pokemon.isLegendary && (
                 <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-amber-400 text-amber-600">
-                  Legendary
+                  {t.pokemon.legendary}
                 </Badge>
               )}
               {pokemon.isMythical && (
                 <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-purple-400 text-purple-600">
-                  Mythical
+                  {t.pokemon.mythical}
                 </Badge>
               )}
             </div>
@@ -100,7 +107,7 @@ export function PokemonListItem({ pokemon, searchParams }: Props) {
                     key={type.type.name}
                     className={`capitalize text-xs ${colors?.bg ?? ""} ${colors?.text ?? ""}`}
                   >
-                    {type.type.name}
+                    {type.type.localizedName ?? type.type.name}
                   </Badge>
                 );
               })}

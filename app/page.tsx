@@ -12,12 +12,14 @@ type PageProps = {
     search?: string;
     type?: string;
     generation?: string;
+    language?: string;
   }>;
 };
 
 export default async function PokemonListPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const page = Math.max(1, parseInt(params.page ?? "1", 10) || 1);
+  const language = params.language ?? "en";
 
   const [result, types, generations] = await Promise.all([
     getPokemonList({
@@ -25,9 +27,10 @@ export default async function PokemonListPage({ searchParams }: PageProps) {
       search: params.search,
       type: params.type,
       generation: params.generation,
+      language,
     }),
-    getTypes(),
-    getGenerations(),
+    getTypes(language),
+    getGenerations(language),
   ]);
 
   return (
@@ -49,6 +52,7 @@ export default async function PokemonListPage({ searchParams }: PageProps) {
         currentSearch={params.search}
         currentType={params.type}
         currentGeneration={params.generation}
+        currentLanguage={params.language}
       />
     </div>
   );

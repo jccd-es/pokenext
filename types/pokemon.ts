@@ -2,6 +2,7 @@ export type PokemonType = {
   slot: number;
   type: {
     name: string;
+    localizedName?: string;
   };
 };
 
@@ -27,6 +28,7 @@ export type PokemonListFilters = {
   search?: string;
   type?: string;
   generation?: string;
+  language?: string;
 };
 
 export type PaginatedPokemonResult = {
@@ -45,13 +47,13 @@ export type PokemonStat = {
 };
 
 export type PokemonAbility = {
-  ability: { name: string };
+  ability: { name: string; localizedName?: string };
   is_hidden: boolean;
   slot: number;
 };
 
 export type PokemonMove = {
-  move: { name: string };
+  move: { name: string; localizedName?: string };
 };
 
 export type PokemonCries = {
@@ -62,6 +64,7 @@ export type PokemonCries = {
 export type EvolutionNode = {
   id: number;
   name: string;
+  localizedName?: string;
   sprite: string;
   minLevel: number | null;
   trigger: string | null;
