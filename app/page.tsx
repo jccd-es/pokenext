@@ -1,25 +1,45 @@
-import { Skeleton } from "@/components/ui/skeleton";
+import { PokemonExplorer } from "@/components/PokemonExplorer";
+import {
+  getPokemonList,
+  getTypes,
+  getGenerations,
+} from "@/lib/api/pokemon";
 
-export default function PokemonListPage() {
+type PageProps = {
+  searchParams: Promise<{
+    page?: string;
+    search?: string;
+    type?: string;
+    generation?: string;
+  }>;
+};
+
+export default async function PokemonListPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const page = Math.max(1, parseInt(params.page ?? "1", 10) || 1);
+
+  const [result, types, generations] = await Promise.all([
+    getPokemonList({
+      page,
+      search: params.search,
+      type: params.type,
+      generation: params.generation,
+    }),
+    getTypes(),
+    getGenerations(),
+  ]);
+
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
-      <div className="container mx-auto px-4 py-8">
-        <Skeleton className="h-10 w-48 mb-6" />
-
-        <div className="mb-6">
-          <Skeleton className="h-10 max-w-md" />
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <div key={i} className="border rounded-lg p-4 space-y-3">
-              <Skeleton className="h-32 w-full" />
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-4 w-1/2" />
-            </div>
-          ))}
-        </div>
-      </div>
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-2xl font-bold mb-6">Pokémon</h1>
+      <PokemonExplorer
+        result={result}
+        types={types}
+        generations={generations}
+        currentSearch={params.search}
+        currentType={params.type}
+        currentGeneration={params.generation}
+      />
     </div>
   );
 }

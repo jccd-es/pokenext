@@ -14,6 +14,8 @@
   "rtl": false,
   "aliases": {
     "components": "@/components",
+    "types": "@/types",
+    "api": "@/lib/api",
     "utils": "@/lib/utils",
     "ui": "@/components/ui",
     "lib": "@/lib",
