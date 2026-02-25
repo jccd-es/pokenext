@@ -31,6 +31,7 @@ This project was developed as a technical assessment with the following requirem
 - ✅ Complete Pokémon listing with sorting by ID
 - ✅ Filter by type and generation
 - ✅ Real-time search with evolution chain support
+- ✅ AI-powered semantic search (optional, requires OpenAI API key)
 - ✅ Detailed Pokémon information pages
 - ✅ Evolution chain visualization with navigation
 - ✅ State persistence when navigating back to listing
@@ -60,13 +61,27 @@ cd pokenext
 npm install
 ```
 
-3. Run the development server:
+3. Configure environment variables (optional):
+
+```bash
+cp .env.example .env
+```
+
+Edit the `.env` file and add your OpenAI API key to enable AI-powered search:
+
+```
+OPENAI_API_KEY=your_openai_api_key_here
+```
+
+> **Note**: The AI search feature is optional. If no API key is provided, the application will use standard text-based search functionality.
+
+4. Run the development server:
 
 ```bash
 npm run dev
 ```
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser
+5. Open [http://localhost:3000](http://localhost:3000) in your browser
 
 ### Build for Production
 
@@ -109,6 +124,25 @@ The application integrates with [PokéAPI v2](https://pokeapi.co/docs/v2) to fet
 - Generation data
 - Type information
 - Base stats
+
+### AI-Powered Search (Optional)
+
+The application includes an optional AI-powered semantic search feature that uses OpenAI's GPT models to provide intelligent Pokémon search capabilities:
+
+- **Natural Language Queries**: Search using descriptive phrases like "fire type starters" or "dragon legendary"
+- **Semantic Understanding**: The AI interprets your intent beyond exact name matches
+- **Smart Filtering**: Automatically applies relevant filters based on your query
+
+**To enable AI search:**
+
+1. Obtain an API key from [OpenAI Platform](https://platform.openai.com/api-keys)
+2. Add it to your `.env` file:
+   ```
+   OPENAI_API_KEY=sk-...
+   ```
+3. Restart the development server
+
+**Without an API key**, the search will fall back to standard text-based filtering by Pokémon name.
 
 ## 📝 Implementation Notes
 
