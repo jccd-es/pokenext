@@ -33,7 +33,7 @@ export function PokemonListItem({ pokemon, searchParams }: Props) {
   if (params.toString()) href += `?${params.toString()}`;
 
   return (
-    <Card className="hover:shadow-md transition-shadow py-0" role="listitem">
+    <Card className="hover:shadow-md transition-shadow py-0 relative" role="listitem">
       <Link href={href}>
         <CardContent className="flex items-center gap-4 px-4 py-3">
           <div className="relative w-20 h-20 flex-shrink-0">

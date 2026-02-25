@@ -424,6 +424,27 @@ function spriteUrl(id: number) {
   return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
 }
 
+export async function getPokemonsByIds(
+  ids: number[],
+  language = "en"
+): Promise<Pokemon[]> {
+  if (ids.length === 0) return [];
+
+  const { data } = await gqlFetch<GqlPokemonResponse>(
+    POKEMON_LIST_QUERY,
+    {
+      limit: ids.length,
+      offset: 0,
+      where: { id: { _in: ids } },
+      language,
+    },
+    3600
+  );
+
+  const pokemonMap = new Map(data.pokemon.map((p) => [p.id, mapToPokemon(p)]));
+  return ids.map((id) => pokemonMap.get(id)).filter((p): p is Pokemon => !!p);
+}
+
 export async function getPokemonDetailed(
   id: number | string,
   language = "en"

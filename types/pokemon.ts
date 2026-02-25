@@ -21,6 +21,7 @@ export type Pokemon = {
   sprites: {
     front_default: string;
   };
+  isAiResult?: boolean;
 };
 
 export type PokemonListFilters = {

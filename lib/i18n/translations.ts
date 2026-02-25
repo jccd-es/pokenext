@@ -16,6 +16,8 @@ export const translations = {
       noResults: "No Pokémon match your filters.",
       page: "Page",
       of: "of",
+      aiResult: "AI-suggested result",
+      aiResults: "AI-suggested results",
     },
     filters: {
       allTypes: "All types",
@@ -70,6 +72,8 @@ export const translations = {
       noResults: "No hay Pokémon que coincidan con tus filtros.",
       page: "Página",
       of: "de",
+      aiResult: "Resultado sugerido por IA",
+      aiResults: "Resultados sugeridos por IA",
     },
     filters: {
       allTypes: "Todos los tipos",

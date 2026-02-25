@@ -13,10 +13,11 @@ import {
 import { PokemonListItem } from "@/components/PokemonListItem";
 import { PokemonPagination } from "@/components/PokemonPagination";
 import { cn } from "@/lib/utils";
-import { PaginatedPokemonResult } from "@/types/pokemon";
+import { PaginatedPokemonResult, Pokemon } from "@/types/pokemon";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useTranslations } from "@/lib/i18n/use-translations";
 import { LANGUAGES } from "@/lib/i18n/translations";
+import { Bot } from "lucide-react";
 
 const ALL = "__all__";
 const SEARCH_DEBOUNCE_MS = 350;
@@ -47,6 +48,10 @@ export function PokemonExplorer({
 
   const [searchValue, setSearchValue] = useState(currentSearch ?? "");
   const debouncedSearch = useDebounce(searchValue, SEARCH_DEBOUNCE_MS);
+
+  const [aiResults, setAiResults] = useState<Pokemon[]>([]);
+  const [isAiSearching, setIsAiSearching] = useState(false);
+  const [aiSearchQuery, setAiSearchQuery] = useState<string | null>(null);
 
   const buildUrl = useCallback(
     (updates: Record<string, string | undefined>) => {
@@ -88,6 +93,73 @@ export function PokemonExplorer({
       navigate({ search: debouncedSearch || undefined });
     }
   }, [debouncedSearch, navigate, searchParams]);
+
+  useEffect(() => {
+    const shouldSearchAi =
+      result.pokemons.length === 0 &&
+      currentSearch &&
+      currentSearch.length >= 2 &&
+      !currentType &&
+      !currentGeneration;
+
+    if (!shouldSearchAi) {
+      setAiResults([]);
+      setAiSearchQuery(null);
+      return;
+    }
+
+    if (aiSearchQuery === currentSearch) return;
+
+    const controller = new AbortController();
+
+    async function fetchAiResults() {
+      setIsAiSearching(true);
+      setAiResults([]);
+
+      try {
+        const response = await fetch("/api/search/ai", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            query: currentSearch,
+            language: currentLanguage ?? "en",
+          }),
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          setAiResults([]);
+          return;
+        }
+
+        const { ids } = (await response.json()) as { ids: number[] };
+        if (ids.length === 0) {
+          setAiResults([]);
+          return;
+        }
+
+        const { getPokemonsByIds } = await import("@/lib/api/pokemon");
+        const pokemons = await getPokemonsByIds(ids, currentLanguage ?? "en");
+        const sorted = pokemons
+          .map((p) => ({ ...p, isAiResult: true }))
+          .sort((a, b) => a.id - b.id);
+
+        setAiResults(sorted);
+        setAiSearchQuery(currentSearch ?? null);
+      } catch (error) {
+        if ((error as Error).name !== "AbortError") {
+          console.error("AI search failed:", error);
+        }
+        setAiResults([]);
+      } finally {
+        setIsAiSearching(false);
+      }
+    }
+
+    fetchAiResults();
+
+    return () => controller.abort();
+  }, [result.pokemons.length, currentSearch, currentType, currentGeneration, currentLanguage, aiSearchQuery]);
 
   const selectSkeleton = (className: string) => (
     <div
@@ -188,10 +260,31 @@ export function PokemonExplorer({
             searchParams={searchParams}
           />
         ))}
-        {result.pokemons.length === 0 && (
+        {result.pokemons.length === 0 && aiResults.length === 0 && !isAiSearching && (
           <p className="text-center text-muted-foreground py-12">
             {t.search.noResults}
           </p>
+        )}
+        {result.pokemons.length === 0 && isAiSearching && (
+          <div className="flex items-center justify-center gap-2 py-12 text-muted-foreground">
+            <Bot className="h-4 w-4 animate-pulse" />
+            <span>Searching with AI...</span>
+          </div>
+        )}
+        {aiResults.length > 0 && (
+          <>
+            <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground border-t mt-4">
+              <Bot className="h-4 w-4 text-violet-500" />
+              <span>{aiResults.length} {t.search.aiResults}</span>
+            </div>
+            {aiResults.map((pokemon) => (
+              <PokemonListItem
+                key={`ai-${pokemon.id}`}
+                pokemon={pokemon}
+                searchParams={searchParams}
+              />
+            ))}
+          </>
         )}
       </div>
 
